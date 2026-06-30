@@ -1,8 +1,11 @@
 # demo artifacts
+out/
 out_full.log
-.mp4
+*.mp4
 efficiency_memory.json
-# ...but DO ship the README's demo video + poster
+# ...but DO ship the README's demo media (gif preview + mp4 + poster)
+!media/
+!media/demo.gif
 !media/demo.mp4
 !media/poster.jpg
 
