@@ -34,24 +34,31 @@ standing instead of scattered.
 
 ## How megan-tk keeps it standing
 
-Two governors run for real, on a real (small) torch VLA, with live sensor signals
-from the sim and real outcome feedback (pyramid integrity):
+The frozen VLA can build the pyramid, but it can't keep it up: speeding through the
+rebuild just topples more blocks, and it has no answer to a lurch it didn't see
+coming. megan-tk wins on **control, pattern, and a new action** — not raw speed —
+all running for real on a small torch VLA with live sensors and real outcome
+feedback:
 
-1. **Neuro-symbolic governor** (`megantk.ns_governor`) — watches the progress
-   float (pyramid integrity). When it stalls, it reasons symbolically over the
-   live sensors and **diagnoses the cause: `OSCILLATION`** (the deck is rocking),
-   then fires a **FourierFT** PEFT micro-kick at the VLA's attention weights
-   (FourierFT's spectral bias is exactly the "smooth, low-frequency damping" you
-   want for oscillatory motion). *Understand the failure before adapting.*
+1. **Neuro-symbolic governor** (`megantk.ns_governor`) — diagnoses the *cause* of
+   the failure symbolically: **`OSCILLATION`** (the deck is rocking), and fires a
+   **FourierFT** PEFT kick at the VLA's attention weights. *Understand the failure.*
 
-2. **Efficiency governor** (`megantk.efficiency`) — then ratchets the rebuild
-   **speed up one committed step at a time**, keeping the tower intact, so the arm
-   rebuilds faster without ever toppling it. *Speed up while keeping it standing.*
+2. **Efficiency governor** (`megantk.efficiency`) — finds the **max *safe* rebuild
+   speed** with a residual ratchet: push the speed up until a faster build starts
+   knocking blocks over, then hold the last speed that didn't. *Speed, but bounded
+   by control — once it's destructive, the previous speed was the max.*
 
-The headline is **average pyramid integrity** on the rocking ship. In the rendered
-run the frozen "regular VLA" stays around **28%** (mostly in pieces) while the
-**megan-tk** arm holds **~66%**, repeatedly rebuilding to a full tower between
-lurches — a **+39-point** swing.
+3. **Anticipation governor** (`megantk.anticipation`, added for this) — **learns
+   the ship's lurch rhythm** from a few observations (period + phase) and, just
+   before each predicted lurch, deploys a **new action: `BRACE`** — a steadying
+   hand on the tower so the lurch physically can't throw it. *Learn the pattern,
+   add an action, hold the system down.*
+
+The headline metric is **average pyramid integrity** through the lurches. The
+frozen VLA watches each lurch throw the upper rows off (**~52%**); megan-tk learns
+the beat and braces every lurch, so the pyramid stays **standing the whole time
+(~100%)** — a **+40-point** swing.
 
 ## Run it
 
@@ -62,14 +69,16 @@ Needs the cadenza venv (MuJoCo + torch + the Cadenza arm):
 # options: --episodes N  --duration S  --no-render  --out DIR
 ```
 
-It runs three acts and writes a narrative video to `out/`:
+It runs four acts and writes a narrative video to `out/`:
 
-- **Act 1** — the efficiency governor rebuilds the upper rows repeatedly; rebuild
-  time falls (e.g. ~27s -> ~6s) while integrity stays 1.0.
-- **Act 2** — a frozen arm is overwhelmed; progress goes flat; the neuro-symbolic
-  governor diagnoses `OSCILLATION` and kicks FourierFT on the attention layer.
-- **Act 3** — a continuous run under sway + hard lurches: **Regular VLA (1.0x) vs
-  With megan-tk (learned speed)**.
+- **Act 1** — the efficiency governor finds the max *safe* rebuild speed (pushes
+  until a faster build topples blocks, then backs off).
+- **Act 2** — the neuro-symbolic governor diagnoses `OSCILLATION` and kicks
+  FourierFT on the attention layer.
+- **Act 3** — the anticipation governor watches a few lurches and **learns the
+  rhythm** (period + phase), registering the `BRACE` action.
+- **Act 4** — the payoff under sway + hard lurches: **frozen VLA** (collapses) vs
+  **megan-tk** (learns the rhythm, braces each lurch, stays standing).
 
 Outputs: `results.json`, `integrity.png` (the two integrity curves), and
 `demo.mp4` — a 720p story cut: *intro → Regular VLA (can't keep up) → With

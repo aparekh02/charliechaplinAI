@@ -59,87 +59,101 @@ def run(out_dir: Path, *, episodes: int, duration: float, render: bool,
         seed: int = 0) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     results: dict = {}
-    LURCH_EVERY, IMPULSE = 15.0, 1.0
+    LURCH_EVERY = 10.0
 
-    # ── Act 1 + 2: the governor learns, on a real torch VLA ──────────────────
-    _print_header("ACT 1  efficiency governor learns to build faster")
-    arm = GovernedArm(governed=True, seed=seed, lurch_every=LURCH_EVERY,
-                      lurch_impulse=IMPULSE)
-    learn = arm.learn_speed(episodes=episodes)
+    # ── Acts 1-3: the governed arm learns (speed, cause, and rhythm) ─────────
+    gov = GovernedArm(governed=True, seed=seed, lurch_every=LURCH_EVERY)
+
+    _print_header("ACT 1  efficiency governor finds the max SAFE rebuild speed")
+    learn = gov.learn_speed(episodes=episodes)
     for r in learn:
         print(f"  ep{r['episode']:02d}  trial {r['trial_speed']:.1f}x  "
               f"rebuild {r['duration']:5.1f}s  integrity {r['integrity']:.2f}  "
-              f"-> {r['status']:7s}  (speed now {r['speed']:.1f}x)")
-    learned_speed = arm.speed
-    print(f"  learned build speed: {learned_speed:.1f}x  "
-          f"(rebuild {learn[0]['duration']:.0f}s -> {learn[-1]['duration']:.0f}s)")
+              f"-> {r['status']:7s}  (safe speed {r['speed']:.1f}x)")
+    learned_speed = gov.speed
+    print(f"  max safe speed: {learned_speed:.1f}x (push until a faster build starts "
+          f"toppling blocks, then hold the last safe one)")
 
     _print_header("ACT 2  neuro-symbolic governor diagnoses the rocking")
-    diag = arm.diagnose()
+    diag = gov.diagnose()
     print(f"  diagnoses: {diag['hypotheses']}")
-    for k in diag["kicks"][:5]:
+    for k in diag["kicks"][:4]:
         print(f"  KICK  {k['hypothesis']:11s}  {k['method']:7s} -> {k['layers']}")
-    arm.close()
-    results.update(learn=learn, learned_speed=round(learned_speed, 2),
+
+    _print_header("ACT 3  anticipation governor learns the ship's lurch rhythm")
+    pat = gov.learn_pattern(observe=3)
+    print(f"  watched {pat['observed']} lurches -> period {pat['period']}s "
+          f"(phase {pat['phase']}s, confidence {pat['confidence']})")
+
+    _print_header("ACT 3b  the agent discovers HOW to brace (tries each, keeps best)")
+    brace = gov.learn_brace(trials=1)
+    for r in brace["trials"]:
+        print(f"  tried {r['strategy']:13s} -> kept {r['held']*100:3.0f}% of the tower")
+    print(f"  discovered best brace: {brace['best']}  (this is the new action it adds)")
+
+    # the trained VLA policy drives the arm in Act 4 (falls back to the governed
+    # planner if the weights aren't present)
+    pol_path = Path(__file__).resolve().parent / "assets" / "policy.pt"
+    if pol_path.exists():
+        from shipyard.policy import Policy
+        gov.policy = Policy.load(str(pol_path))
+        print(f"  loaded trained VLA policy ({pol_path.name}) — it will choose every action")
+    results.update(learned_speed=round(learned_speed, 2), pattern=pat,
+                   brace=brace, vla_policy=bool(gov.policy),
                    diagnosis={"hypotheses": diag["hypotheses"], "kicks": diag["kicks"]})
 
-    # ── Act 3: survival — regular VLA vs megan-tk ────────────────────────────
-    _print_header("ACT 3  survival on the rocking ship: regular VLA vs megan-tk")
-    cap = dict(capture=render, width=_hd()[0], height=_hd()[1], capture_every=16)
+    # ── Act 4: the payoff — frozen VLA vs megan-tk under the lurches ──────────
+    _print_header("ACT 4  keep the pyramid standing: frozen VLA vs megan-tk")
 
-    reg = GovernedArm(governed=False, seed=seed + 1, lurch_every=LURCH_EVERY,
-                      lurch_impulse=IMPULSE)
+    reg = GovernedArm(governed=False, seed=seed, lurch_every=LURCH_EVERY)
     reg.rt.capture = render
-    reg.rt._width, reg.rt._height, reg.rt._capture_every = _hd()[0], _hd()[1], 16
-    reg_res = reg.survival(speed=1.0, duration=duration,
-                           overlay=make_overlay("Regular VLA", "no governor  1.0x")
+    reg.rt._width, reg.rt._height, reg.rt._capture_every = _hd()[0], _hd()[1], 22
+    reg_res = reg.survival(governed=False, duration=duration,
+                           overlay=make_overlay("Frozen VLA", "no governor")
                            if render else None)
     reg_frames = list(reg.rt.frames); reg.close()
-    print(f"  REGULAR VLA  (1.0x) : mean integrity {reg_res['mean_integrity']:.2f}  "
-          f"final {reg_res['final']:.2f}  (lurches {reg_res['lurches']})")
+    print(f"  FROZEN VLA : mean integrity {reg_res['mean_integrity']:.2f}  "
+          f"uptime {reg_res['uptime']:.2f}  (lurches {reg_res['lurches']}, "
+          f"braces {reg_res['braces']})")
 
-    gov = GovernedArm(governed=False, seed=seed + 1, lurch_every=LURCH_EVERY,
-                      lurch_impulse=IMPULSE)
     gov.rt.capture = render
-    gov.rt._width, gov.rt._height, gov.rt._capture_every = _hd()[0], _hd()[1], 16
-    sub = f"learned {learned_speed:.1f}x  OSCILLATION->FourierFT"
-    gov_res = gov.survival(speed=learned_speed, duration=duration,
-                           overlay=make_overlay("With megan-tk", sub) if render else None)
+    gov.rt._width, gov.rt._height, gov.rt._capture_every = _hd()[0], _hd()[1], 22
+    gov_res = gov.survival(governed=True, duration=duration,
+                           overlay=make_overlay("With megan-tk", "VLA policy in control")
+                           if render else None)
     gov_frames = list(gov.rt.frames); gov.close()
-    print(f"  WITH megan-tk ({learned_speed:.1f}x): mean integrity "
-          f"{gov_res['mean_integrity']:.2f}  final {gov_res['final']:.2f}  "
-          f"(lurches {gov_res['lurches']})")
+    print(f"  WITH megan-tk: mean integrity {gov_res['mean_integrity']:.2f}  "
+          f"uptime {gov_res['uptime']:.2f}  (braced {gov_res['braces']} lurches)")
     gain = gov_res["mean_integrity"] - reg_res["mean_integrity"]
     print(f"\n  ==> megan-tk keeps the pyramid {gain*100:+.0f} integrity-points "
-          f"higher on average")
+          f"higher on average — it anticipates each lurch and braces the tower")
 
-    results["survival_regular"] = {k: v for k, v in reg_res.items() if k != "series"}
+    results["survival_frozen"] = {k: v for k, v in reg_res.items() if k != "series"}
     results["survival_megantk"] = {k: v for k, v in gov_res.items() if k != "series"}
 
     # ── artifacts ────────────────────────────────────────────────────────────
-    _plot(out_dir / "integrity.png", reg_res, gov_res, learned_speed)
+    _plot(out_dir / "integrity.png", reg_res, gov_res)
     if render and gov_frames:
         white = (245, 245, 250)
         story = (
             _card([("Building Pyramids on a Moving Ship", 1.5, white, 3),
                    ("a 6-axis arm  -  real MuJoCo physics", 0.9, (180, 200, 220), 2),
                    ("kept standing by megan-tk", 0.9, (120, 200, 255), 2)], 3.0)
-            + _card([("A regular VLA model", 1.5, white, 3),
-                     ("knows how to stack - but can't keep up", 0.85,
+            + _card([("A frozen VLA", 1.5, white, 3),
+                     ("builds the pyramid, but every hard lurch", 0.85,
                       (200, 200, 210), 2),
-                     ("with the rocking ship", 0.85, (200, 200, 210), 2)], 2.6)
+                     ("throws the upper rows off the ship", 0.85, (200, 200, 210), 2)],
+                    2.6)
             + reg_frames
             + _card([("With megan-tk", 1.5, white, 3),
-                     ("diagnoses the OSCILLATION, builds faster", 0.85,
-                      (160, 220, 160), 2),
-                     (f"learned {learned_speed:.1f}x  -  pyramid stays up", 0.85,
-                      (120, 200, 255), 2)], 2.6)
+                     ("the same arm, the same ship", 0.85, (200, 200, 210), 2),
+                     ("watch what it does differently", 0.85, (160, 220, 160), 2)], 2.6)
             + gov_frames
-            + _card([(f"regular VLA   {reg_res['mean_integrity']*100:.0f}%  "
-                      f"vs   megan-tk  {gov_res['mean_integrity']*100:.0f}%", 1.2,
+            + _card([(f"frozen VLA  {reg_res['mean_integrity']*100:.0f}%   vs"
+                      f"   megan-tk  {gov_res['mean_integrity']*100:.0f}%", 1.2,
                       white, 3),
-                     ("average pyramid integrity on the rocking ship", 0.85,
-                      (180, 200, 220), 2)], 3.2))
+                     ("average pyramid integrity through the lurches", 0.85,
+                      (180, 200, 220), 2)], 3.4))
         _write_mp4(out_dir / "demo.mp4", story)
         results["video"] = str(out_dir / "demo.mp4")
 
@@ -149,23 +163,23 @@ def run(out_dir: Path, *, episodes: int, duration: float, render: bool,
     return results
 
 
-def _plot(path, reg, gov, speed):
+def _plot(path, reg, gov):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots(figsize=(8, 4.2))
-    for res, lab, c in ((reg, "regular VLA (1.0x)", "#d6453b"),
-                        (gov, f"megan-tk ({speed:.1f}x)", "#2e7d32")):
+    for res, lab, c in ((reg, "frozen VLA", "#d6453b"),
+                        (gov, "megan-tk (learns rhythm + braces)", "#2e7d32")):
         t = [p[0] for p in res["series"]]
         y = [p[1] for p in res["series"]]
         ax.plot(t, y, label=lab, color=c, lw=2)
     ax.axhline(0.43, ls=":", c="#888", lw=1)
-    ax.text(1, 0.45, "base only (upper rows knocked off)", fontsize=8, color="#888")
+    ax.text(1, 0.45, "base only (upper rows thrown off)", fontsize=8, color="#888")
     ax.set_xlabel("time on the rocking ship (s)")
     ax.set_ylabel("pyramid integrity")
     ax.set_ylim(0, 1.05)
     ax.set_title("Keeping the pyramid standing through the lurches")
-    ax.legend(loc="upper left")
+    ax.legend(loc="lower left")
     ax.grid(alpha=0.25)
     fig.tight_layout(); fig.savefig(path, dpi=120); plt.close(fig)
 

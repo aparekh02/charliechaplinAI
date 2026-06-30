@@ -18,13 +18,14 @@ def test_full_pyramid_scores_one():
 
 
 def test_integrity_tracks_the_deck_frame():
-    # a fully intact tower swaying with the deck scores ~1.0 once the deck offset
-    # is supplied (locked-in blocks ride the deck exactly)
-    for dy in (-0.06, 0.0, 0.06):
+    # the blocks ride the deck, so a tower swaying with it scores ~1.0 once the
+    # live deck offset is supplied; without it the score drops
+    for dy in (-0.08, 0.0, 0.08):
         pos = {s.name: np.array([s.x, s.y + dy, s.z]) for s in plan.SLOTS}
         assert plan.integrity(pos, deck_y=dy) > 0.99
-        if dy != 0.0:                                   # without the offset it drops
-            assert plan.integrity(pos, deck_y=0.0) < 0.5
+        assert plan.is_block_placed(pos, "block13", deck_y=dy)
+        if dy:
+            assert plan.integrity(pos, deck_y=0.0) < 0.6
 
 
 def test_losing_capstone_costs_the_most():

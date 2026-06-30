@@ -3,18 +3,22 @@
 Derived from cadenza's arm scene (and robogpt's stack scene): same 6-axis arm,
 table, pedestal, gripper, collision groups and actuators. Two things change:
 
-1. **The deck is a ``mocap`` body** that the arm, pedestal and table all hang off.
-   A mocap body is kinematically driven (we set ``data.mocap_pos`` every physics
-   step) rather than simulated, so the "ship" sways exactly on the rhythm we ask
-   for — no actuator to tune, no contact dynamics on the deck itself. Crucially a
-   mocap body adds *no joint*, so the arm's six joints stay the first six in the
-   model and cadenza's IK (which slices ``jnt_range[:6]``) works unchanged.
+1. **The deck is a real ``hinge`` joint that ROLLS the whole ship** side to side
+   (axis x, pivot at the waterline). The arm, pedestal and table are all bolted to
+   the deck body, so the entire platform tilts as one when the ship rolls — the arm
+   rocks with the ship, exactly like a robot mounted on a real deck. A gentle sway
+   is a small slow roll the loose blocks ride out; a hard **lurch** is a sharp roll
+   to one side whose gravity component sends the loose blocks sliding *downhill* and
+   topples the tower. The deck joint sits before the arm's six in ``qpos``, so the
+   runtime uses arm-joint slices (``_aq``/``_av``) and transforms deck-frame targets
+   through the live deck pose.
 
-2. **Fourteen free blocks** start pre-built into the pyramid (positions from
-   :mod:`shipyard.pyramid_plan`). They couple to the table only through friction,
-   so when the deck accelerates under them they skid — slowly at first, then the
-   upper rows topple. Block/table friction is low on purpose: the tower stands on
-   a level deck but creeps once the ship starts rocking.
+2. **Fourteen free blocks** rest on the deck through friction only (no welds). On a
+   level deck they stand; as the ship rolls they slide downhill and the upper rows
+   topple. Because the arm shares the deck frame, a brace that plants the hand on the
+   downhill side is a rigid wall the sliding tower piles against — a real, effective
+   steadying hand. Block/table friction is tuned so the tower rides the gentle sway
+   but a sharp roll overcomes it.
 
 Use :func:`build_scene_xml` to get the MJCF string (the runtime writes it to a
 temp file and loads it), or run this module to dump it to ``assets/``.
@@ -29,11 +33,11 @@ from shipyard import pyramid_plan as plan
 # Block/table contact friction (slide, torsion, roll). Low enough that a small
 # deck acceleration overcomes it (blocks skid), high enough that the pyramid
 # stands on a still deck. Tuned empirically.
-# Real friction: high static grip so a well-built tower stands on the gently
-# swaying deck, but the blocks are free bodies — a hard lurch slides/topples them
-# for real, and the gripper (or a carried block) can nudge them.
-BLOCK_FRICTION = "0.7 0.15 0.004"
-TABLE_FRICTION = "0.7 0.15 0.004"
+# Real friction: enough that a tower rides the gentle roll/sway with the deck, but
+# low enough that a hard, sharp roll sends the blocks sliding downhill and topples
+# them (no impulse fakery). The gripper holds blocks with its own pad friction.
+BLOCK_FRICTION = "0.6 0.1 0.005"
+TABLE_FRICTION = "0.6 0.1 0.005"
 
 # Deck (mocap) origin in world; the arm/table positions below are relative to it.
 DECK_POS = (0.0, 0.0, 0.0)
@@ -94,14 +98,15 @@ def _keyframe(start, scatter_seed, settle_gap) -> str:
     """Full keyframe: arm home + open grip + every block's free-joint pose + the
     deck mocap pose. qpos = 6 arm + 2 grip + 14*(xyz + quat)."""
     starts = _starts(start, scatter_seed, settle_gap)
-    arm = "0 0.6 0.9 0 0.6 0"
+    # home pose for the arm on its back post: gripper hovering above the table
+    arm = "1.571 0.492 1.882 0.0 0.767 -1.571"
     grip = "0.04 0.04"
     blocks = "  ".join(f"{x:.4f} {y:.4f} {z:.4f} 1 0 0 0" for x, y, z in starts)
+    # qpos = deck slide (1) + 6 arm + 2 grip + 14 blocks; ctrl = 6 arm + 2 grip + deck
     return (
         f'    <key name="home"\n'
-        f'         qpos="{arm} {grip}  {blocks}"\n'
-        f'         ctrl="{arm} {grip}"\n'
-        f'         mpos="0 0 0" mquat="1 0 0 0"/>')
+        f'         qpos="0  {arm} {grip}  {blocks}"\n'
+        f'         ctrl="{arm} {grip} 0"/>')
 
 
 def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
@@ -171,18 +176,19 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
     <geom name="floor" type="plane" size="0 0 0.05" pos="0 0 -0.35" material="sea"
           contype="0" conaffinity="0"/>
 
-    <!-- THE SHIP: one solid raft, kinematically driven (mocap). The arm, pedestal
-         and table are bolted to it, so the whole thing moves as one plank when the
-         deck sways or lurches. The deck top is a real collision surface, so blocks
-         knocked off the tower land and tumble on the deck (not through it). The
-         free blocks are NOT children — they only follow the deck through friction,
-         which is what lets a hard lurch throw them off. -->
-    <body name="deck" mocap="true" pos="{dx} {dy} {dz}">
+    <!-- THE SHIP: one solid raft on a roll hinge (axis x, pivot at the waterline).
+         The arm, pedestal and table are bolted to it, so the whole platform TILTS as
+         one when the ship rolls. The deck top is a real collision surface, so blocks
+         knocked off the tower land and tumble on the deck (not through it). The free
+         blocks are NOT children — they only follow the deck through friction, which
+         is what lets a sharp roll send them sliding downhill and topple them. -->
+    <body name="deck" pos="{dx} {dy} {dz}">
+      <joint name="deck_roll" type="hinge" axis="1 0 0" damping="8"/>
       <geom name="deck_top" type="box" size="0.66 0.62 0.03" pos="0.26 0 -0.03"
             material="deck" contype="1" conaffinity="10" friction="0.6 0.1 0.01"
-            condim="3"/>
+            condim="3" mass="5"/>
       <geom name="hull" type="box" size="0.56 0.5 0.10" pos="0.26 0 -0.16"
-            material="hull" contype="0" conaffinity="0"/>
+            material="hull" contype="0" conaffinity="0" mass="3"/>
       <!-- gunwales: solid barriers around the deck edge so blocks knocked off the
            tower stay on the ship instead of flying into the sea (WORLD group). -->
       <geom name="rail_y1" type="box" size="0.66 0.02 0.16" pos="0.26 0.6 0.13"
@@ -194,7 +200,9 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
       <geom name="rail_x0" type="box" size="0.02 0.62 0.16" pos="-0.38 0 0.13"
             material="hull" contype="1" conaffinity="10" friction="0.5 0.1 0.01"/>
 
-      <geom name="pedestal" type="cylinder" size="0.09 0.1" pos="0 0 0.1"
+      <!-- the arm is mounted on a tall post just behind the table, so it reaches
+           DOWN over the whole surface and can pick up a block anywhere on it -->
+      <geom name="pedestal" type="cylinder" size="0.05 0.31" pos="0.5 -0.34 0.31"
             material="metal" contype="0" conaffinity="0"/>
 
       <body name="table" pos="0.5 0 0">
@@ -208,7 +216,7 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
         <geom name="leg_d" type="box" size="0.02 0.02 0.19" pos="-0.18 -0.28 0.19" material="table"/>
       </body>
 
-      <body name="shoulder" pos="0 0 0.2" gravcomp="1" childclass="arm">
+      <body name="shoulder" pos="0.5 -0.34 0.62" gravcomp="1" childclass="arm">
         <joint name="j1" axis="0 0 1" range="-2.9 2.9"/>
         <geom type="cylinder" size="0.07 0.05" pos="0 0 0.03" material="joint"/>
         <body name="upper_arm" pos="0 0 0.06" gravcomp="1">
@@ -274,6 +282,10 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
     <position name="a_j6" joint="j6"/>
     <position name="a_grip_left"  class="finger" joint="grip_left"/>
     <position name="a_grip_right" class="finger" joint="grip_right"/>
+    <!-- rolls the whole ship side to side; a real joint so the deck has angular
+         velocity and friction carries the blocks along until a sharp roll breaks it -->
+    <position name="a_deck" joint="deck_roll" kp="12000" dampratio="1"
+              forcerange="-15000 15000"/>
   </actuator>
 
   <keyframe>

@@ -40,18 +40,25 @@ def make_overlay(title: str, subtitle: str = ""):
         cv2.rectangle(img, (bx, by), (bx + bw, by + bh), (220, 220, 230),
                       max(1, int(1 * s)))
 
-        # clock + lurch counter, and a flash when the ship lurches
+        # clock + lurch counter
         info = f"t={rt.sim_t():4.1f}s   lurches={rt.lurches_fired}"
         iw = cv2.getTextSize(info, cv2.FONT_HERSHEY_SIMPLEX, 0.7 * s,
                              max(1, int(2 * s)))[0][0]
         cv2.putText(img, info, (w - iw - int(20 * s), y), cv2.FONT_HERSHEY_SIMPLEX,
                     0.7 * s, (215, 215, 225), max(1, int(2 * s)), cv2.LINE_AA)
-        if rt.osc.is_lurching(rt.sim_t()):
-            txt = "LURCH!"
-            tw = cv2.getTextSize(txt, cv2.FONT_HERSHEY_DUPLEX, 1.6 * s,
+
+        # centre banner: BRACING (arm holding the tower) or LURCH!
+        banner = None
+        if getattr(rt, "_bracing", False):
+            banner = ("BRACING - holding the tower", (90, 210, 90))
+        elif rt.lurching():
+            banner = ("LURCH!", (60, 80, 240))
+        if banner:
+            txt, c = banner
+            tw = cv2.getTextSize(txt, cv2.FONT_HERSHEY_DUPLEX, 1.3 * s,
                                  max(1, int(3 * s)))[0][0]
-            cv2.putText(img, txt, (w // 2 - tw // 2, int(110 * s)),
-                        cv2.FONT_HERSHEY_DUPLEX, 1.6 * s, (60, 80, 240),
-                        max(1, int(3 * s)), cv2.LINE_AA)
+            cv2.putText(img, txt, (w // 2 - tw // 2, int(108 * s)),
+                        cv2.FONT_HERSHEY_DUPLEX, 1.3 * s, c, max(1, int(3 * s)),
+                        cv2.LINE_AA)
         return img[:, :, ::-1]                          # back to RGB
     return overlay

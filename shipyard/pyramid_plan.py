@@ -33,7 +33,7 @@ BLOCK_HALF = 0.026               # cube half-extent (full edge 0.052)
 # arm can set one down next to another without the carried block shoving its
 # neighbour. The faces don't touch, so each upper block rests on the inner edges
 # of the four below it — stable enough with the high block friction.
-_GAP = 0.018
+_GAP = 0.004
 _EDGE = 2.0 * BLOCK_HALF + _GAP  # centre-to-centre spacing in a layer
 
 # Per-tier centre heights: surface + half, then stack by a full block edge each
@@ -107,14 +107,22 @@ def slot_world(slot: Slot, deck_y: float) -> np.ndarray:
     return np.array([slot.x, slot.y + deck_y, slot.z], dtype=float)
 
 
-def integrity(block_pos: dict[str, np.ndarray], deck_y: float = 0.0) -> float:
-    """Pyramid health in [0, 1]: tier-weighted fraction of slots correctly filled.
+def is_block_placed(block_pos: dict[str, np.ndarray], name: str,
+                    deck_y: float = 0.0) -> bool:
+    """Whether one block is resting in its slot, in the deck frame (the blocks ride
+    the deck, so subtracting the live deck offset is exact). Per-block and
+    independent — works while the rest of the pyramid is still scattered."""
+    p = block_pos.get(name)
+    if p is None:
+        return False
+    slot = SLOT_BY_NAME[name]
+    return (math.hypot(p[0] - slot.x, p[1] - (slot.y + deck_y)) <= XY_TOL
+            and abs(p[2] - slot.z) <= Z_TOL)
 
-    A slot counts as filled if *some* block sits within tolerance of it in the
-    deck frame (slot y shifted by the live ``deck_y``). Matching is greedy by
-    distance so one block can't satisfy two slots. Locked-in blocks ride the deck
-    exactly, so this is precise; blocks a lurch has thrown out of place score 0.
-    """
+
+def integrity(block_pos: dict[str, np.ndarray], deck_y: float = 0.0) -> float:
+    """Pyramid health in [0, 1]: tier-weighted fraction of slots correctly filled,
+    matched in the deck frame (slot y shifted by the live ``deck_y``)."""
     pts = {n: np.array([p[0], p[1] - deck_y, p[2]], dtype=float)
            for n, p in block_pos.items()}
     used: set[str] = set()
@@ -175,15 +183,16 @@ def scatter_positions(seed: int = 0) -> list[np.ndarray]:
     and spaced so they don't interpenetrate at spawn."""
     rng = np.random.default_rng(seed)
     z = SURFACE_Z + BLOCK_HALF
+    # a loose grid across the FRONT of the table (the arm is mounted on a post at
+    # the back and reaches everything in front of it), clear of the centre where
+    # the pyramid goes.
     spots = []
-    for x in np.linspace(0.40, 0.60, 5):               # front row
-        spots.append((x, -0.20))
-    for x in np.linspace(0.40, 0.60, 5):               # back row
-        spots.append((x, 0.20))
-    for y in (-0.085, 0.085):                          # left edge
-        spots.append((0.38, y))
-    for y in (-0.085, 0.085):                          # right edge
-        spots.append((0.62, y))
+    for y in (0.09, 0.18, 0.27):
+        for x in (0.34, 0.42, 0.50, 0.58, 0.66):
+            if abs(x - 0.5) < 0.01 and y < 0.12:       # skip the one over the centre
+                continue
+            spots.append((x, y))
+    spots = spots[:N_BLOCKS]
     out = []
     for x, y in spots[:N_BLOCKS]:
         jx, jy = rng.uniform(-0.012, 0.012, 2)
