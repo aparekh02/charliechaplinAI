@@ -255,17 +255,19 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
                        bowler hat. When the gripper points down at its work the hat (-z)
                        points up to the sky. All visual only (no collision), near-
                        massless — pure showmanship. Face looks out along +y. -->
-                  <geom type="sphere"   size="0.030" pos="0 0.004 -0.004" material="skin"
+                  <geom type="sphere"   size="0.042" pos="0 0.012 -0.004" material="skin"
                         contype="0" conaffinity="0" mass="1e-4"/>
-                  <geom type="sphere"   size="0.006" pos="0.012 0.026 -0.012" material="hat"
+                  <geom type="sphere"   size="0.007" pos="0.015 0.050 -0.013" material="hat"
                         contype="0" conaffinity="0" mass="1e-4"/>
-                  <geom type="sphere"   size="0.006" pos="-0.012 0.026 -0.012" material="hat"
+                  <geom type="sphere"   size="0.007" pos="-0.015 0.050 -0.013" material="hat"
                         contype="0" conaffinity="0" mass="1e-4"/>
-                  <geom type="box"      size="0.015 0.005 0.005" pos="0 0.028 0.004" material="hat"
+                  <geom type="sphere"   size="0.007" pos="0 0.054 0.001" material="skin"
                         contype="0" conaffinity="0" mass="1e-4"/>
-                  <geom type="cylinder" size="0.050 0.005" pos="0 0 -0.036" material="hat"
+                  <geom type="box"      size="0.016 0.005 0.005" pos="0 0.052 0.013" material="hat"
                         contype="0" conaffinity="0" mass="1e-4"/>
-                  <geom type="cylinder" size="0.032 0.020" pos="0 0 -0.054" material="hat"
+                  <geom type="cylinder" size="0.056 0.005" pos="0 0.006 -0.044" material="hat"
+                        contype="0" conaffinity="0" mass="1e-4"/>
+                  <geom type="cylinder" size="0.036 0.022" pos="0 0.006 -0.064" material="hat"
                         contype="0" conaffinity="0" mass="1e-4"/>
                   <body name="left_finger" pos="0 0.011 0.018">
                     <joint name="grip_left" class="finger" axis="0 1 0"/>
