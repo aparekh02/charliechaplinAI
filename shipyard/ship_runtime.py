@@ -50,7 +50,7 @@ class ShipRuntime(_Runtime):
     def __init__(self, start: str = "scatter",
                  oscillator: ShipOscillator | None = None, *,
                  hz: float = 50.0, capture: bool = False,
-                 capture_every: int = 10, cam=(2.0, 140, -15),
+                 capture_every: int = 10, cam=(1.85, 250, -17),
                  width: int = 1280, height: int = 720,
                  block_friction: str | None = None):
         # cadenza's _Runtime loads from a path, so materialise the generated MJCF.
@@ -443,7 +443,7 @@ class ShipRuntime(_Runtime):
             self._renderer = mujoco.Renderer(self.model, self._height, self._width)
             cam = mujoco.MjvCamera()
             cam.distance, cam.azimuth, cam.elevation = self._cam_spec
-            cam.lookat[:] = (0.45, 0.0, 0.45)
+            cam.lookat[:] = (0.5, 0.0, 0.46)
             self._cam = cam
         self._renderer.update_scene(self.data, self._cam)
         px = self._renderer.render()

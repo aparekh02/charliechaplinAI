@@ -15,20 +15,22 @@ joy isn't that the robot is flawless — it's that it **figures it out as it goe
 <!-- the show itself: click the still to play -->
 [![charliechaplinAI — the robot that learns to keep its tower standing](media/poster.jpg)](media/demo.mp4)
 
-▶️ **[Watch the demo](media/demo.mp4)** — the frozen robot vs. the one that learns
+▶️ **[Watch the demo](out/demo.mp4)** — the frozen robot vs. the one that learns
 (100% vs 35% tower-still-standing).
 
 ```
-            [#]            "...and the capstone, ladies and gentlemen!"
-          [#][#]
-          [#][#]
-        [#][#][#]
-        [#][#][#]
-        [#][#][#]
-   ___[🎩]_____________
-  |   o  arm  table   |   <- one ship's deck, swaying...  and then — a LURCH!  ↩↪
-  \___________________/
-   ~~~~~~~~~ sea ~~~~~~~~~
+        [🎩]  <- the hatted hand, steadying its own tower
+          \
+           [#]           "...and the capstone, ladies and gentlemen!"
+         [#][#]
+         [#][#]
+       [#][#][#]
+       [#][#][#]
+       [#][#][#]
+   _____________________
+  |     arm    table    |  <- one ship's deck, swaying... then — a LURCH!  ↩↪
+  \_____________________/
+   ~~~~~~~~~~ sea ~~~~~~~~~~
 ```
 
 ## The comedy, in three acts
