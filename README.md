@@ -1,66 +1,71 @@
-# charliechaplinAI
+# 🎩 charliechaplinAI
 
-**Building pyramids on a moving ship** — a 6-joint arm, real MuJoCo physics, and
-[`megan-tk`](../megantk) keeping the tower standing as the deck rocks.
+> *A little tramp of a robot — bowler hat, mustache and all — alone on a rocking ship,
+> trying to stack a tower of blocks before the next wave knocks it over.
+> He falls. He watches. He learns a new trick. He keeps the tower standing.*
 
-A Cadenza 6-axis arm is bolted to a ship's deck — one solid plank, arm and table
-and all, riding the sea. **14 colored blocks** start strewn across the table,
-disconnected, and the arm builds them into a three-tier pyramid: a **3×3** base
-(9), a **2×2** middle (4), and **1** capstone on top, bottom-up.
+A 6-axis robot arm is bolted to the deck of a ship at sea. In front of it: **14
+coloured blocks, scattered**. Its whole purpose in life is to build them into a
+pyramid — a **3×3** base, a **2×2** middle, one proud block on top — and *keep it
+standing* while the deck sways and the ocean keeps trying to ruin everything.
 
-The deck sways gently the whole time, and every so often it **lurches hard** — a
-big swell hits the hull. That lurch is real physics: every loose block gets thrown,
-the exposed upper rows tumble off (several at once, sometimes a base block too),
-while the bolted-down base mostly rides it out. The arm runs a frozen VLA that
-knows how to stack — but on a rocking ship it can't rebuild fast enough between
-lurches, and the pyramid spends its life in pieces.
+It's a balancing act worthy of the Little Tramp himself. And just like Chaplin, the
+joy isn't that the robot is flawless — it's that it **figures it out as it goes.**
 
-`megan-tk` closes that gap **online, with no retraining**: it learns to rebuild
-faster (and diagnoses *why* it was failing), so the pyramid spends its time
-standing instead of scattered.
+<!-- the show itself: click the still to play -->
+[![charliechaplinAI — the robot that learns to keep its tower standing](media/poster.jpg)](media/demo.mp4)
+
+▶️ **[Watch the demo](media/demo.mp4)** — the frozen robot vs. the one that learns
+(100% vs 35% tower-still-standing).
 
 ```
-            [#]              tier 2  (capstone — first thrown off by a lurch)
+            [#]            "...and the capstone, ladies and gentlemen!"
           [#][#]
-          [#][#]             tier 1  (2×2)
+          [#][#]
         [#][#][#]
         [#][#][#]
-        [#][#][#]            tier 0  (3×3 base — bolted, rides the lurch)
-   /=====================\
-   |   arm  #   table    |   <- one solid plank, sways + LURCHES  <====>
-   \=====================/
-   ~~~~~~~~~~~ sea ~~~~~~~~~~~
+        [#][#][#]
+   ___[🎩]_____________
+  |   o  arm  table   |   <- one ship's deck, swaying...  and then — a LURCH!  ↩↪
+  \___________________/
+   ~~~~~~~~~ sea ~~~~~~~~~
 ```
 
-## How megan-tk keeps it standing
+## The comedy, in three acts
 
-The frozen VLA can build the pyramid, but it can't keep it up: speeding through the
-rebuild just topples more blocks, and it has no answer to a lurch it didn't see
-coming. megan-tk wins on **control, pattern, and a new action** — not raw speed —
-all running for real on a small torch VLA with live sensors and real outcome
-feedback:
+**Act I — It can't keep up.** A plain robot builds the tower just fine. Then a swell
+rolls the ship, the top rows slide off into the sea, and it starts over. Another
+wave. It starts over again. Sisyphus in a bowler hat — the pyramid spends its whole
+life in pieces.
 
-1. **Neuro-symbolic governor** (`megantk.ns_governor`) — diagnoses the *cause* of
-   the failure symbolically: **`OSCILLATION`** (the deck is rocking), and fires a
-   **FourierFT** PEFT kick at the VLA's attention weights. *Understand the failure.*
+**Act II — It studies the sea.** Using megantk (the self-learning RLT using symbolic architectures), the robot can watch a few waves go by and then *learns the
+rhythm* — when the next one is coming, before it arrives.
 
-2. **Efficiency governor** (`megantk.efficiency`) — finds the **max *safe* rebuild
-   speed** with a residual ratchet: push the speed up until a faster build starts
-   knocking blocks over, then hold the last speed that didn't. *Speed, but bounded
-   by control — once it's destructive, the previous speed was the max.*
+**Act III — It invents a new move.** It discovers it can **brace** — set a steadying
+hand on the tower right before each wave — and *tries different ways of doing it*
+until it finds the one that actually holds. Then it just... keeps the tower up.
 
-3. **Anticipation governor** (`megantk.anticipation`, added for this) — **learns
-   the ship's lurch rhythm** from a few observations (period + phase) and, just
-   before each predicted lurch, deploys a **new action: `BRACE`** — a steadying
-   hand on the tower so the lurch physically can't throw it. *Learn the pattern,
-   add an action, hold the system down.*
+> Plain robot: tower standing **~35%** of the time.
+> Our hatted hero: **~100%**. Same arm, same storm — one of them *learned*.
 
-The headline metric is **average pyramid integrity** through the lurches. The
-frozen VLA watches each lurch throw the upper rows off (**~52%**); megan-tk learns
-the beat and braces every lurch, so the pyramid stays **standing the whole time
-(~100%)** — a **+40-point** swing.
+## The actually-impressive part: it learns on the job 🧠
 
-## Run it
+No retraining. No do-overs. Everything it knows, it picks up **live, on the rocking
+deck, from what it sees:**
+
+- 🏃 **How fast it can work** without toppling its own tower — it pushes the speed up
+  until a build goes wrong, then settles on the fastest one that didn't.
+- 🌊 **The rhythm of the waves** — learned from watching just a few of them, so it's
+  ready *before* the next hit instead of being surprised by it.
+- 🤚 **A brand-new trick** (the brace) that wasn't in its playbook — and it **works
+  out the best way to do it** by trying options and keeping what holds the tower.
+- 🤖 **A real little brain** drives every move: a small transformer **VLA policy**
+  that reads the scene and decides, moment to moment, whether to *build*, *brace*, or
+  *wait*. It learned that by watching a teacher — not from a pile of if-statements.
+
+That's the Chaplin magic: drop him into a mess, and he adapts his way out of it.
+
+## Run the show
 
 Needs the cadenza venv (MuJoCo + torch + the Cadenza arm):
 
@@ -69,49 +74,18 @@ Needs the cadenza venv (MuJoCo + torch + the Cadenza arm):
 # options: --episodes N  --duration S  --no-render  --out DIR
 ```
 
-It runs four acts and writes a narrative video to `out/`:
+It plays out the acts above and writes the film to `out/`: `demo.mp4` (the narrated
+720p cut), `integrity.png` (the two "how-standing-is-the-tower" curves), and
+`results.json`. To re-teach the little brain from scratch: `python train_policy.py`.
 
-- **Act 1** — the efficiency governor finds the max *safe* rebuild speed (pushes
-  until a faster build topples blocks, then backs off).
-- **Act 2** — the neuro-symbolic governor diagnoses `OSCILLATION` and kicks
-  FourierFT on the attention layer.
-- **Act 3** — the anticipation governor watches a few lurches and **learns the
-  rhythm** (period + phase), registering the `BRACE` action.
-- **Act 4** — the payoff under sway + hard lurches: **frozen VLA** (collapses) vs
-  **megan-tk** (learns the rhythm, braces each lurch, stays standing).
+## Under the hood
 
-Outputs: `results.json`, `integrity.png` (the two integrity curves), and
-`demo.mp4` — a 720p story cut: *intro → Regular VLA (can't keep up) → With
-megan-tk (rebuilds and holds) → outro*, with a live integrity HUD.
+The learning is powered by [`megan-tk`](../megantk) — four small "governors" running
+on a live robot with no retraining: one **diagnoses** why it's failing (the deck is
+*oscillating*), one finds the **max safe speed**, one **learns the wave rhythm**, and
+one **discovers the brace** and picks the best version of it. A trained transformer
+policy turns all that into the arm's actual decisions.
 
-## What's real, and the one modeling abstraction
-
-Real: the MuJoCo physics, the Cadenza 6-DoF arm and its damped-least-squares IK on
-the **moving (mocap) plank**, the gentle sway, the **hard lurches** (every loose
-block is freed and gets a real inertial kick, then MuJoCo resolves the actual
-tumbling, collisions and falls — several blocks at once), both `megan-tk` governors
-(genuine diagnosis, PEFT kicks, commit/revert trials, efficiency memory), and the
-outcome.
-
-Abstraction: a block that lands within tolerance of its slot **locks in** (welds to
-the deck and rides the ship rigidly) instead of being balanced by friction alone,
-and between lurches the bolted base stays locked. This is a deliberate stand-in for
-contact-rich interlocking — balancing free cubes on a continuously moving base is
-intractably noisy and would swamp the thing the demo is about (`megan-tk` adapting
-online). The arm, IK, sway, the lurch physics, and the governors are all real.
-
-## Layout
-
-```
-shipyard/
-  pyramid_plan.py    14-block layout, tier weights, deck-frame integrity metric
-  oscillator.py      the ship's rhythm — gentle sway + scheduled hard lurches
-  scene_builder.py   generates the ship MJCF (mocap plank, arm+table+14 free blocks)
-  ship_runtime.py    live MuJoCo session: IK on the moving base, pick/place, lock/lurch
-  sensors.py         scene -> sensor_bundle the governor reads as OSCILLATION
-  vla.py             PyramidVLA + GovernedArm (ties in both governors + the policy)
-  overlay.py         the integrity HUD drawn on the video
-  demo.py            the three-act demo + metrics + narrative MP4
-run_demo.py          launcher
-tests/               geometry/metric/oscillator (pure) + scene/runtime/diagnosis (mujoco)
-```
+And it's all **real physics** — real friction grasps, a real rolling deck, real waves
+that really topple things, and a real trained policy. No strings, no fillers: the
+robot really is balancing that tower. 🎩

@@ -145,6 +145,8 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
     <material name="joint" rgba="0.95 0.6 0.12 1"/>
     <material name="link"  rgba="0.25 0.45 0.78 1"/>
     <material name="grip"  rgba="0.13 0.14 0.17 1"/>
+    <material name="hat"   rgba="0.07 0.07 0.09 1"/>
+    <material name="skin"  rgba="0.93 0.80 0.69 1"/>
     <material name="deck"  rgba="0.66 0.48 0.30 1"/>
     <material name="hull"  rgba="0.34 0.23 0.14 1"/>
     <material name="table" rgba="0.50 0.37 0.24 1"/>
@@ -205,6 +207,7 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
       <geom name="pedestal" type="cylinder" size="0.05 0.31" pos="0.5 -0.34 0.31"
             material="metal" contype="0" conaffinity="0"/>
 
+
       <body name="table" pos="0.5 0 0">
         <geom name="table_top" type="box" size="0.22 0.32 0.02" pos="0 0 0.38"
               material="table" contype="1" conaffinity="10"
@@ -247,6 +250,23 @@ def build_scene_xml(start: str = "scatter", *, scatter_seed: int | None = 0,
                         contype="4" conaffinity="2"/>
                   <site name="pinch" pos="0 0 0.062" size="0.006" rgba="0 1 0 0.6"/>
                   <camera name="grip_cam" pos="0.06 0 0.0" xyaxes="0 1 0 1 0 0" fovy="60"/>
+                  <!-- THE LITTLE TRAMP rides the HAND itself, so the head is the part
+                       that moves: a round face with a tiny mustache, under a battered
+                       bowler hat. When the gripper points down at its work the hat (-z)
+                       points up to the sky. All visual only (no collision), near-
+                       massless — pure showmanship. Face looks out along +y. -->
+                  <geom type="sphere"   size="0.030" pos="0 0.004 -0.004" material="skin"
+                        contype="0" conaffinity="0" mass="1e-4"/>
+                  <geom type="sphere"   size="0.006" pos="0.012 0.026 -0.012" material="hat"
+                        contype="0" conaffinity="0" mass="1e-4"/>
+                  <geom type="sphere"   size="0.006" pos="-0.012 0.026 -0.012" material="hat"
+                        contype="0" conaffinity="0" mass="1e-4"/>
+                  <geom type="box"      size="0.015 0.005 0.005" pos="0 0.028 0.004" material="hat"
+                        contype="0" conaffinity="0" mass="1e-4"/>
+                  <geom type="cylinder" size="0.050 0.005" pos="0 0 -0.036" material="hat"
+                        contype="0" conaffinity="0" mass="1e-4"/>
+                  <geom type="cylinder" size="0.032 0.020" pos="0 0 -0.054" material="hat"
+                        contype="0" conaffinity="0" mass="1e-4"/>
                   <body name="left_finger" pos="0 0.011 0.018">
                     <joint name="grip_left" class="finger" axis="0 1 0"/>
                     <geom type="box" size="0.006 0.007 0.024" pos="0 0 0.024"
