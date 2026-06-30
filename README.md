@@ -13,7 +13,7 @@ It's a balancing act worthy of the Little Tramp himself. And just like Chaplin, 
 joy isn't that the robot is flawless — it's that it **figures it out as it goes.**
 
 <!-- the show itself: click the still to play -->
-[![charliechaplinAI — the robot that learns to keep its tower standing](media/poster.jpg)](media/demo.mp4)
+[![charliechaplinAI — the robot that learns to keep its tower standing](media/poster.jpg)](out/demo.mp4)
 
 ▶️ **[Watch the demo](out/demo.mp4)** — the frozen robot vs. the one that learns
 (100% vs 35% tower-still-standing).
