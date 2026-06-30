@@ -1,0 +1,101 @@
+{
+  "learned_speed": 3.5,
+  "pattern": {
+    "period": 10.0,
+    "phase": 9.99,
+    "confidence": 0.5,
+    "observed": 3
+  },
+  "brace": {
+    "trials": [
+      {
+        "strategy": "pin_cap",
+        "held": 1.0
+      },
+      {
+        "strategy": "pin_cap_firm",
+        "held": 1.0
+      },
+      {
+        "strategy": "pin_mid",
+        "held": 0.619
+      }
+    ],
+    "best": "pin_cap",
+    "rates": {
+      "pin_cap": 1.0,
+      "pin_cap_firm": 1.0,
+      "pin_mid": 0.0
+    }
+  },
+  "vla_policy": true,
+  "diagnosis": {
+    "hypotheses": {
+      "oscillation": 11
+    },
+    "kicks": [
+      {
+        "hypothesis": "oscillation",
+        "method": "fourier",
+        "layers": [
+          "self_attn_proj"
+        ],
+        "rationale": "motion is anti-correlated step-to-step (and/or the tracked box jitters): the controller is oscillating rather than converging."
+      },
+      {
+        "hypothesis": "oscillation",
+        "method": "lora",
+        "layers": [
+          "self_attn_proj"
+        ],
+        "rationale": "motion is anti-correlated step-to-step (and/or the tracked box jitters): the controller is oscillating rather than converging."
+      },
+      {
+        "hypothesis": "oscillation",
+        "method": "oft",
+        "layers": [
+          "self_attn_proj"
+        ],
+        "rationale": "motion is anti-correlated step-to-step (and/or the tracked box jitters): the controller is oscillating rather than converging."
+      },
+      {
+        "hypothesis": "oscillation",
+        "method": "vera",
+        "layers": [
+          "self_attn_proj"
+        ],
+        "rationale": "motion is anti-correlated step-to-step (and/or the tracked box jitters): the controller is oscillating rather than converging."
+      },
+      {
+        "hypothesis": "oscillation",
+        "method": "fourier",
+        "layers": [
+          "self_attn_proj"
+        ],
+        "rationale": "motion is anti-correlated step-to-step (and/or the tracked box jitters): the controller is oscillating rather than converging."
+      }
+    ]
+  },
+  "survival_frozen": {
+    "governed": false,
+    "speed": 1.0,
+    "mean_integrity": 0.338,
+    "uptime": 0.183,
+    "final": 0.0,
+    "lurches": 3,
+    "braces": 0,
+    "learned_period": null
+  },
+  "survival_megantk": {
+    "governed": true,
+    "speed": 3.5,
+    "mean_integrity": 1.0,
+    "uptime": 1.0,
+    "final": 1.0,
+    "lurches": 2,
+    "braces": 3,
+    "learned_period": 10.0,
+    "policy_driven": true
+  },
+  "video": "out/demo.mp4"
+}

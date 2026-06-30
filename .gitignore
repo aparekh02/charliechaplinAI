@@ -1,7 +1,6 @@
 # demo artifacts
-out/
 out_full.log
-*.mp4
+.mp4
 efficiency_memory.json
 # ...but DO ship the README's demo video + poster
 !media/demo.mp4
