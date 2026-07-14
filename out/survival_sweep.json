@@ -1,0 +1,85 @@
+{
+  "seeds": 5,
+  "duration": 60.0,
+  "episodes": 8,
+  "per_seed": [
+    {
+      "seed": 0,
+      "sea_lurch_every": 10.086,
+      "sea_lurch_amp": 0.26,
+      "sea_sway_period": 2.23,
+      "sea_sway_amp": 0.039,
+      "frozen_integrity": 0.225,
+      "frozen_uptime": 0.085,
+      "megantk_integrity": 0.942,
+      "megantk_uptime": 1.0,
+      "lurches": 6
+    },
+    {
+      "seed": 1,
+      "sea_lurch_every": 10.45,
+      "sea_lurch_amp": 0.202,
+      "sea_sway_period": 2.031,
+      "sea_sway_amp": 0.052,
+      "frozen_integrity": 0.113,
+      "frozen_uptime": 0.0,
+      "megantk_integrity": 0.807,
+      "megantk_uptime": 0.738,
+      "lurches": 6
+    },
+    {
+      "seed": 2,
+      "sea_lurch_every": 9.523,
+      "sea_lurch_amp": 0.236,
+      "sea_sway_period": 2.423,
+      "sea_sway_amp": 0.043,
+      "frozen_integrity": 0.315,
+      "frozen_uptime": 0.042,
+      "megantk_integrity": 0.926,
+      "megantk_uptime": 0.942,
+      "lurches": 7
+    },
+    {
+      "seed": 3,
+      "sea_lurch_every": 8.751,
+      "sea_lurch_amp": 0.226,
+      "sea_sway_period": 2.246,
+      "sea_sway_amp": 0.048,
+      "frozen_integrity": 0.626,
+      "frozen_uptime": 0.129,
+      "megantk_integrity": 0.897,
+      "megantk_uptime": 0.85,
+      "lurches": 7
+    },
+    {
+      "seed": 4,
+      "sea_lurch_every": 8.004,
+      "sea_lurch_amp": 0.213,
+      "sea_sway_period": 1.997,
+      "sea_sway_amp": 0.043,
+      "frozen_integrity": 0.143,
+      "frozen_uptime": 0.0,
+      "megantk_integrity": 0.814,
+      "megantk_uptime": 0.648,
+      "lurches": 8
+    }
+  ],
+  "frozen": {
+    "mean_integrity": 0.2844,
+    "mean_integrity_ci95": 0.18098305052131264,
+    "uptime": 0.0512,
+    "uptime_ci95": 0.04904466764083532
+  },
+  "megantk": {
+    "mean_integrity": 0.8772,
+    "mean_integrity_ci95": 0.0552546213813831,
+    "uptime": 0.8356,
+    "uptime_ci95": 0.12647331898863093
+  },
+  "delta": {
+    "mean_integrity": 0.5928,
+    "mean_integrity_ci95": 0.16142881745215132,
+    "uptime": 0.7844,
+    "uptime_ci95": 0.1029673646161734
+  }
+}

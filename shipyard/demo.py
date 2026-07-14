@@ -56,13 +56,19 @@ def _card(lines, seconds=2.6, fps=30, accent=(120, 200, 255)):
 
 
 def run(out_dir: Path, *, episodes: int, duration: float, render: bool,
-        seed: int = 0) -> dict:
+        seed: int = 0, lurch_every: float = 10.0, lurch_amp: float = 0.24,
+        sway_period: float = 2.2, sway_amp: float = 0.04) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     results: dict = {}
-    LURCH_EVERY = 10.0
+    LURCH_EVERY = lurch_every
+    # the disturbance (sea state) is what the sweep varies per seed — the periodic
+    # ship motion is otherwise deterministic, so these knobs are the real source of
+    # cross-seed variation ("re-run across seeds/lurch phases").
+    _sea = dict(lurch_every=lurch_every, lurch_amp=lurch_amp,
+                sway_period=sway_period, sway_amp=sway_amp)
 
     # ── Acts 1-3: the governed arm learns (speed, cause, and rhythm) ─────────
-    gov = GovernedArm(governed=True, seed=seed, lurch_every=LURCH_EVERY)
+    gov = GovernedArm(governed=True, seed=seed, **_sea)
 
     _print_header("ACT 1  efficiency governor finds the max SAFE rebuild speed")
     learn = gov.learn_speed(episodes=episodes)
@@ -105,7 +111,7 @@ def run(out_dir: Path, *, episodes: int, duration: float, render: bool,
     # ── Act 4: the payoff — frozen VLA vs megan-tk under the lurches ──────────
     _print_header("ACT 4  keep the pyramid standing: frozen VLA vs megan-tk")
 
-    reg = GovernedArm(governed=False, seed=seed, lurch_every=LURCH_EVERY)
+    reg = GovernedArm(governed=False, seed=seed, **_sea)
     reg.rt.capture = render
     reg.rt._width, reg.rt._height, reg.rt._capture_every = _hd()[0], _hd()[1], 22
     reg_res = reg.survival(governed=False, duration=duration,
