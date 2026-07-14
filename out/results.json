@@ -79,23 +79,22 @@
   "survival_frozen": {
     "governed": false,
     "speed": 1.0,
-    "mean_integrity": 0.338,
-    "uptime": 0.183,
-    "final": 0.0,
-    "lurches": 3,
+    "mean_integrity": 0.314,
+    "uptime": 0.078,
+    "final": 0.381,
+    "lurches": 6,
     "braces": 0,
     "learned_period": null
   },
   "survival_megantk": {
     "governed": true,
     "speed": 3.5,
-    "mean_integrity": 1.0,
-    "uptime": 1.0,
-    "final": 1.0,
-    "lurches": 2,
-    "braces": 3,
+    "mean_integrity": 0.908,
+    "uptime": 0.871,
+    "final": 0.619,
+    "lurches": 6,
+    "braces": 6,
     "learned_period": 10.0,
     "policy_driven": true
-  },
-  "video": "out/demo.mp4"
+  }
 }
